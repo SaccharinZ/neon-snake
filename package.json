@@ -1,0 +1,30 @@
+{
+  "name": "neon-snake",
+  "private": true,
+  "version": "1.0.0",
+  "description": "NEON SNAKE — a neon-style Snake game built with React, Vite and Canvas.",
+  "author": "SaccharinZ",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaccharinZ/neon-snake.git"
+  },
+  "homepage": "https://github.com/SaccharinZ/neon-snake#readme",
+  "bugs": {
+    "url": "https://github.com/SaccharinZ/neon-snake/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node tests/engine.test.js"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite": "^6.3.5"
+  }
+}

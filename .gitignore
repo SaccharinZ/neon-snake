@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+.npm-cache
+.pnpm-store
+.browser-profile
+.browser-cdp
+preview-*.png
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
