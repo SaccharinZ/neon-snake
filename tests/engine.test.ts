@@ -1,14 +1,14 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import { expect, test } from 'vitest';
+import type { AdvanceResult, Cell, GameState } from '../src/game/engine';
 import {
   advanceGame,
   createGame,
   getLevel,
   getStepMs,
   spawnFood,
-} from '../src/game/engine.js';
+} from '../src/game/engine';
 
-function makeState(overrides = {}) {
+function makeState(overrides: Partial<GameState> = {}): GameState {
   const base = createGame('normal');
   return {
     ...base,
@@ -23,26 +23,37 @@ function makeState(overrides = {}) {
   };
 }
 
+function expectResultType<T extends AdvanceResult['type']>(
+  result: AdvanceResult,
+  type: T,
+): asserts result is Extract<AdvanceResult, { type: T }> {
+  expect(result.type).toBe(type);
+  if (result.type !== type) {
+    throw new Error(`Expected result type "${type}", received "${result.type}".`);
+  }
+}
+
 test('createGame starts with a valid snake and food', () => {
   const game = createGame('normal');
-  assert.equal(game.status, 'ready');
-  assert.equal(game.snake.length, 4);
-  assert.equal(game.score, 0);
-  assert.ok(game.food);
-  assert.ok(
-    !game.snake.some(
-      (cell) => cell.x === game.food.x && cell.y === game.food.y,
-    ),
-  );
+  expect(game.status).toBe('ready');
+  expect(game.snake).toHaveLength(4);
+  expect(game.score).toBe(0);
+  expect(game.food).not.toBeNull();
+
+  const food = game.food;
+  if (!food) throw new Error('Expected initial food to be spawned.');
+  expect(
+    game.snake.some((cell) => cell.x === food.x && cell.y === food.y),
+  ).toBe(false);
 });
 
 test('advanceGame moves the snake one cell in the chosen direction', () => {
   const state = makeState();
   const result = advanceGame(state, 'up');
 
-  assert.equal(result.type, 'move');
-  assert.deepEqual(result.snake[0], { x: 5, y: 4 });
-  assert.equal(result.snake.length, 3);
+  expectResultType(result, 'move');
+  expect(result.snake[0]).toEqual({ x: 5, y: 4 });
+  expect(result.snake).toHaveLength(3);
 });
 
 test('eating food grows the snake, scores ten, and respawns food', () => {
@@ -55,15 +66,17 @@ test('eating food grows the snake, scores ten, and respawns food', () => {
   });
   const result = advanceGame(state, 'right');
 
-  assert.equal(result.type, 'eat');
-  assert.equal(result.score, 10);
-  assert.equal(result.eaten, 1);
-  assert.equal(result.snake.length, 3);
-  assert.ok(
-    !result.snake.some(
-      (cell) => cell.x === result.food.x && cell.y === result.food.y,
-    ),
-  );
+  expectResultType(result, 'eat');
+  expect(result.score).toBe(10);
+  expect(result.eaten).toBe(1);
+  expect(result.snake).toHaveLength(3);
+  expect(result.food).not.toBeNull();
+
+  const food = result.food;
+  if (!food) throw new Error('Expected replacement food to be spawned.');
+  expect(
+    result.snake.some((cell) => cell.x === food.x && cell.y === food.y),
+  ).toBe(false);
 });
 
 test('crossing the right edge wraps the head to the left side', () => {
@@ -76,8 +89,8 @@ test('crossing the right edge wraps the head to the left side', () => {
   });
   const result = advanceGame(state, 'right');
 
-  assert.equal(result.type, 'move');
-  assert.deepEqual(result.snake[0], { x: 0, y: 5 });
+  expectResultType(result, 'move');
+  expect(result.snake[0]).toEqual({ x: 0, y: 5 });
 });
 
 test('crossing the top edge wraps the head to the bottom side', () => {
@@ -90,8 +103,8 @@ test('crossing the top edge wraps the head to the bottom side', () => {
   });
   const result = advanceGame(state, 'up');
 
-  assert.equal(result.type, 'move');
-  assert.deepEqual(result.snake[0], { x: 5, y: 19 });
+  expectResultType(result, 'move');
+  expect(result.snake[0]).toEqual({ x: 5, y: 19 });
 });
 
 test('wrapping into the opposite side of the body still ends the game', () => {
@@ -106,7 +119,7 @@ test('wrapping into the opposite side of the body still ends the game', () => {
   });
   const result = advanceGame(state, 'right');
 
-  assert.deepEqual(result, { type: 'dead', reason: 'self' });
+  expect(result).toEqual({ type: 'dead', reason: 'self' });
 });
 
 test('the snake cannot bite its own body', () => {
@@ -122,7 +135,7 @@ test('the snake cannot bite its own body', () => {
   });
   const result = advanceGame(state, 'down');
 
-  assert.deepEqual(result, { type: 'dead', reason: 'self' });
+  expect(result).toEqual({ type: 'dead', reason: 'self' });
 });
 
 test('moving into the vacating tail cell is legal', () => {
@@ -137,38 +150,38 @@ test('moving into the vacating tail cell is legal', () => {
   });
   const result = advanceGame(state, 'left');
 
-  assert.equal(result.type, 'move');
-  assert.deepEqual(result.snake[0], { x: 4, y: 5 });
-  assert.equal(result.snake.length, 4);
+  expectResultType(result, 'move');
+  expect(result.snake[0]).toEqual({ x: 4, y: 5 });
+  expect(result.snake).toHaveLength(4);
 });
 
 test('food spawns only on free cells', () => {
-  const snake = [
+  const snake: Cell[] = [
     { x: 0, y: 0 },
     { x: 1, y: 0 },
   ];
   const food = spawnFood(snake, 3, () => 0);
 
-  assert.deepEqual(food, { x: 2, y: 0 });
+  expect(food).toEqual({ x: 2, y: 0 });
 });
 
 test('spawnFood returns null when the board is full', () => {
-  const snake = [];
+  const snake: Cell[] = [];
   for (let y = 0; y < 4; y += 1) {
     for (let x = 0; x < 4; x += 1) {
       snake.push({ x, y });
     }
   }
 
-  assert.equal(spawnFood(snake, 4), null);
+  expect(spawnFood(snake, 4)).toBeNull();
 });
 
 test('speed levels increase and respect the floor', () => {
-  assert.equal(getLevel(0), 1);
-  assert.equal(getLevel(5), 2);
-  assert.equal(getLevel(10), 3);
+  expect(getLevel(0)).toBe(1);
+  expect(getLevel(5)).toBe(2);
+  expect(getLevel(10)).toBe(3);
 
-  assert.equal(getStepMs('normal', 0), 115);
-  assert.equal(getStepMs('normal', 5), 108);
-  assert.equal(getStepMs('normal', 100), 68);
+  expect(getStepMs('normal', 0)).toBe(115);
+  expect(getStepMs('normal', 5)).toBe(108);
+  expect(getStepMs('normal', 100)).toBe(68);
 });

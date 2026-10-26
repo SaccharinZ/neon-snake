@@ -1,6 +1,6 @@
 # NEON SNAKE · 霓虹贪吃蛇
 
-一个使用 **React + Canvas** 编写的纯前端贪吃蛇小游戏。无需后端，打开即玩，最高分会保存在当前浏览器中。
+一个使用 **React + TypeScript + Canvas** 编写的纯前端贪吃蛇小游戏。无需后端，打开即玩，最高分会保存在当前浏览器中。
 
 ## 玩法
 
@@ -21,6 +21,7 @@
 - 键盘、触屏滑动、虚拟方向键三种操作方式
 - 完整响应式布局，支持桌面与移动端
 - 支持 `prefers-reduced-motion` 减弱动效
+- 全量 TypeScript 类型覆盖，严格模式编译
 
 ## 本地运行
 
@@ -33,7 +34,13 @@ npm run dev
 
 打开终端中 Vite 输出的本地地址即可游玩。
 
-构建生产版本：
+类型检查：
+
+```bash
+npm run typecheck
+```
+
+构建生产版本（会自动执行类型检查）：
 
 ```bash
 npm run build
@@ -52,17 +59,18 @@ npm test
 
 ```text
 src/
-├── App.jsx                  # 页面布局与键盘交互
-├── main.jsx                 # React 入口
+├── App.tsx                  # 页面布局与键盘交互
+├── main.tsx                 # React 入口
 ├── styles.css               # 视觉样式与响应式布局
+├── vite-env.d.ts            # Vite 类型声明
 ├── components/
-│   └── GameBoard.jsx        # Canvas 渲染与棋盘浮层
+│   └── GameBoard.tsx        # Canvas 渲染与棋盘浮层
 └── game/
-    ├── constants.js         # 棋盘、方向、难度常量
-    ├── engine.js            # 纯函数游戏核心逻辑
-    ├── useSnakeGame.js      # 游戏循环、状态与输入调度
-    ├── sound.js             # Web Audio 合成音效
-    └── storage.js           # localStorage 持久化
+    ├── constants.ts         # 棋盘、方向、难度常量与类型
+    ├── engine.ts            # 纯函数游戏核心逻辑
+    ├── useSnakeGame.ts      # 游戏循环、状态与输入调度
+    ├── sound.ts             # Web Audio 合成音效
+    └── storage.ts           # localStorage 持久化
 tests/
-└── engine.test.js           # 移动、碰撞、进食与生成逻辑测试
+└── engine.test.ts           # 移动、碰撞、进食与生成逻辑测试
 ```

@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DIFFICULTIES } from './constants';
-import {
-  advanceGame,
-  createGame,
-  isOpposite,
-} from './engine';
-import {
-  loadBestScore,
-  saveBestScore,
-} from './storage';
+import type { DifficultyId, Direction } from './constants';
+import { advanceGame, createGame, isOpposite } from './engine';
+import type { Cell, EatEvent, GameState } from './engine';
+import { loadBestScore, saveBestScore } from './storage';
 import {
   playCrashSound,
   playEatSound,
@@ -18,19 +13,36 @@ import {
   unlockAudio,
 } from './sound';
 
-const cloneCell = (cell) => ({ x: cell.x, y: cell.y });
+export interface UseSnakeGameOptions {
+  soundEnabled?: boolean;
+}
 
-export function useSnakeGame({ soundEnabled = true } = {}) {
-  const [game, setGame] = useState(() => createGame());
-  const [bestScore, setBestScore] = useState(loadBestScore);
-  const [difficulty, setDifficulty] = useState('normal');
+export interface SnakeGameController {
+  game: GameState;
+  bestScore: number;
+  difficulty: DifficultyId;
+  startGame: () => void;
+  pauseGame: () => void;
+  togglePause: () => void;
+  turn: (direction: Direction) => boolean;
+  changeDifficulty: (difficultyId: DifficultyId) => void;
+}
 
-  const gameRef = useRef(game);
-  const bestRef = useRef(bestScore);
-  const directionQueueRef = useRef([]);
-  const soundRef = useRef(soundEnabled);
-  const difficultyRef = useRef(difficulty);
-  const stepRef = useRef(null);
+const cloneCell = (cell: Cell): Cell => ({ x: cell.x, y: cell.y });
+
+export function useSnakeGame({
+  soundEnabled = true,
+}: UseSnakeGameOptions = {}): SnakeGameController {
+  const [game, setGame] = useState<GameState>(() => createGame());
+  const [bestScore, setBestScore] = useState<number>(loadBestScore);
+  const [difficulty, setDifficulty] = useState<DifficultyId>('normal');
+
+  const gameRef = useRef<GameState>(game);
+  const bestRef = useRef<number>(bestScore);
+  const directionQueueRef = useRef<Direction[]>([]);
+  const soundRef = useRef<boolean>(soundEnabled);
+  const difficultyRef = useRef<DifficultyId>(difficulty);
+  const stepRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     soundRef.current = soundEnabled;
@@ -40,12 +52,12 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
     bestRef.current = bestScore;
   }, [bestScore]);
 
-  const commit = useCallback((nextGame) => {
+  const commit = useCallback((nextGame: GameState) => {
     gameRef.current = nextGame;
     setGame(nextGame);
   }, []);
 
-  const updateBest = useCallback((score) => {
+  const updateBest = useCallback((score: number) => {
     if (score <= bestRef.current) return;
     bestRef.current = score;
     setBestScore(score);
@@ -93,7 +105,7 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
     }
   }, [pauseGame, resumeGame]);
 
-  const turn = useCallback((direction) => {
+  const turn = useCallback((direction: Direction): boolean => {
     const current = gameRef.current;
     if (current.status !== 'playing') return false;
 
@@ -111,7 +123,7 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
   }, []);
 
   const changeDifficulty = useCallback(
-    (difficultyId) => {
+    (difficultyId: DifficultyId) => {
       if (!DIFFICULTIES[difficultyId]) return;
 
       const current = gameRef.current;
@@ -147,7 +159,12 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
       return;
     }
 
-    const nextGame = {
+    const lastEat: EatEvent | null =
+      result.type === 'eat' && current.food
+        ? { ...current.food, at: now }
+        : current.lastEat;
+
+    const nextGame: GameState = {
       ...current,
       status: result.type === 'won' ? 'won' : 'playing',
       snake: result.snake,
@@ -160,10 +177,7 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
       stepMs: result.stepMs,
       tickedAt: now,
       tickDuration: Math.max(36, Math.min(current.stepMs * 0.9, 120)),
-      lastEat:
-        result.type === 'eat'
-          ? { ...current.food, at: now }
-          : current.lastEat,
+      lastEat,
       foodSpawnedAt:
         result.type === 'eat' ? now : current.foodSpawnedAt,
     };
@@ -188,7 +202,7 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
     let cancelled = false;
     let lastMoveAt = performance.now();
 
-    const frame = (now) => {
+    const frame = (now: number): void => {
       if (cancelled) return;
 
       if (now - lastMoveAt >= gameRef.current.stepMs) {
@@ -208,7 +222,7 @@ export function useSnakeGame({ soundEnabled = true } = {}) {
   }, [game.status]);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = (): void => {
       if (document.visibilityState === 'hidden') pauseGame();
     };
 

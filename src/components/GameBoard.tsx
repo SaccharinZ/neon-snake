@@ -1,13 +1,26 @@
 import { useEffect, useRef } from 'react';
+import type {
+  MouseEvent as ReactMouseEvent,
+  TouchEvent as ReactTouchEvent,
+} from 'react';
 import { DIRECTIONS, GRID_SIZE } from '../game/constants';
+import type { Direction } from '../game/constants';
+import type { Cell, GameState } from '../game/engine';
 
 const TAU = Math.PI * 2;
 
-function clamp(value, min, max) {
+function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function roundRectPath(context, x, y, width, height, radius) {
+function roundRectPath(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
   const r = Math.min(radius, width / 2, height / 2);
   context.beginPath();
   context.moveTo(x + r, y);
@@ -18,7 +31,7 @@ function roundRectPath(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-function getAnimatedSnake(game, now) {
+function getAnimatedSnake(game: GameState, now: number): Cell[] {
   const { snake, prevSnake, status, tickedAt, tickDuration } = game;
 
   if (
@@ -61,7 +74,13 @@ function getAnimatedSnake(game, now) {
   });
 }
 
-function drawBoard(context, width, height, cell, now) {
+function drawBoard(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cell: number,
+  now: number,
+): void {
   const background = context.createLinearGradient(0, 0, width, height);
   background.addColorStop(0, '#081219');
   background.addColorStop(0.55, '#071017');
@@ -132,7 +151,12 @@ function drawBoard(context, width, height, cell, now) {
   context.stroke();
 }
 
-function drawFood(context, game, now, cell) {
+function drawFood(
+  context: CanvasRenderingContext2D,
+  game: GameState,
+  now: number,
+  cell: number,
+): void {
   if (!game.food) return;
 
   const x = (game.food.x + 0.5) * cell;
@@ -211,7 +235,12 @@ function drawFood(context, game, now, cell) {
   context.restore();
 }
 
-function drawEatBurst(context, game, now, cell) {
+function drawEatBurst(
+  context: CanvasRenderingContext2D,
+  game: GameState,
+  now: number,
+  cell: number,
+): void {
   if (!game.lastEat) return;
 
   const age = (now - game.lastEat.at) / 560;
@@ -239,17 +268,19 @@ function drawEatBurst(context, game, now, cell) {
 }
 
 function drawSnakeLayer(
-  context,
-  game,
-  positions,
-  cell,
+  context: CanvasRenderingContext2D,
+  game: GameState,
+  positions: readonly Cell[],
+  cell: number,
   offsetX = 0,
   offsetY = 0,
-) {
+): void {
   const count = positions.length;
 
   for (let index = count - 1; index >= 0; index -= 1) {
     const segment = positions[index];
+    if (!segment) continue;
+
     const isHead = index === 0;
     const ratio = count > 1 ? index / (count - 1) : 0;
     const taper = 1 - ratio * 0.08;
@@ -300,7 +331,7 @@ function drawSnakeLayer(
   const head = positions[0];
   if (!head) return;
 
-  const direction = DIRECTIONS[game.direction] ?? DIRECTIONS.right;
+  const direction = DIRECTIONS[game.direction];
   const centerX = (head.x + offsetX + 0.5) * cell;
   const centerY = (head.y + offsetY + 0.5) * cell;
   const forward = cell * 0.11;
@@ -332,7 +363,12 @@ function drawSnakeLayer(
   }
 }
 
-function drawSnake(context, game, positions, cell) {
+function drawSnake(
+  context: CanvasRenderingContext2D,
+  game: GameState,
+  positions: readonly Cell[],
+  cell: number,
+): void {
   const wrapsHorizontally = positions.some(
     (segment) => segment.x < 0 || segment.x >= GRID_SIZE,
   );
@@ -351,7 +387,13 @@ function drawSnake(context, game, positions, cell) {
   }
 }
 
-function drawScene(context, game, now, width, height) {
+function drawScene(
+  context: CanvasRenderingContext2D,
+  game: GameState,
+  now: number,
+  width: number,
+  height: number,
+): void {
   const cell = Math.min(width, height) / GRID_SIZE;
   context.clearRect(0, 0, width, height);
   drawBoard(context, width, height, cell, now);
@@ -360,7 +402,12 @@ function drawScene(context, game, now, width, height) {
   drawSnake(context, game, getAnimatedSnake(game, now), cell);
 }
 
-function ScoreBadge({ label, value }) {
+interface ScoreBadgeProps {
+  label: string;
+  value: number;
+}
+
+function ScoreBadge({ label, value }: ScoreBadgeProps) {
   return (
     <div className="overlay-stat">
       <span>{label}</span>
@@ -369,10 +416,29 @@ function ScoreBadge({ label, value }) {
   );
 }
 
-export function GameBoard({ game, bestScore, onStart, onResume, onTurn }) {
-  const canvasRef = useRef(null);
-  const gameRef = useRef(game);
-  const touchStartRef = useRef(null);
+export interface GameBoardProps {
+  game: GameState;
+  bestScore: number;
+  onStart: () => void;
+  onResume: () => void;
+  onTurn: (direction: Direction) => void;
+}
+
+interface TouchStart {
+  x: number;
+  y: number;
+}
+
+export function GameBoard({
+  game,
+  bestScore,
+  onStart,
+  onResume,
+  onTurn,
+}: GameBoardProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const gameRef = useRef<GameState>(game);
+  const touchStartRef = useRef<TouchStart | null>(null);
   gameRef.current = game;
 
   useEffect(() => {
@@ -387,7 +453,7 @@ export function GameBoard({ game, bestScore, onStart, onResume, onTurn }) {
     let dpr = 1;
     let frameId = 0;
 
-    const resize = () => {
+    const resize = (): void => {
       const rect = canvas.getBoundingClientRect();
       if (rect.width === 0) return;
 
@@ -403,7 +469,7 @@ export function GameBoard({ game, bestScore, onStart, onResume, onTurn }) {
       }
     };
 
-    const render = (now) => {
+    const render = (now: number): void => {
       if (width > 0 && height > 0) {
         context.setTransform(dpr, 0, 0, dpr, 0, 0);
         drawScene(context, gameRef.current, now, width, height);
@@ -422,18 +488,22 @@ export function GameBoard({ game, bestScore, onStart, onResume, onTurn }) {
     };
   }, []);
 
-  const handleTouchStart = (event) => {
+  const handleTouchStart = (
+    event: ReactTouchEvent<HTMLDivElement>,
+  ): void => {
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
+    if (!touch) return;
     touchStartRef.current = { x: touch.clientX, y: touch.clientY };
   };
 
-  const handleTouchEnd = (event) => {
+  const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>): void => {
     const start = touchStartRef.current;
     touchStartRef.current = null;
     if (!start || event.changedTouches.length === 0) return;
 
     const touch = event.changedTouches[0];
+    if (!touch) return;
     const deltaX = touch.clientX - start.x;
     const deltaY = touch.clientY - start.y;
 
@@ -446,12 +516,14 @@ export function GameBoard({ game, bestScore, onStart, onResume, onTurn }) {
     }
   };
 
-  const handlePrimaryAction = (event) => {
+  const handlePrimaryAction = (
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ): void => {
     event.currentTarget.blur();
     onStart();
   };
 
-  const handleResume = (event) => {
+  const handleResume = (event: ReactMouseEvent<HTMLButtonElement>): void => {
     event.currentTarget.blur();
     onResume();
   };

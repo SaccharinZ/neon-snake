@@ -2,21 +2,40 @@ export const GRID_SIZE = 20;
 export const FOOD_SCORE = 10;
 export const LEVEL_EVERY = 5;
 
-export const DIRECTIONS = {
+export type Direction = 'up' | 'down' | 'left' | 'right';
+export type DifficultyId = 'chill' | 'normal' | 'turbo';
+
+export interface DirectionVector {
+  x: number;
+  y: number;
+  label: string;
+}
+
+export const DIRECTIONS: Record<Direction, DirectionVector> = {
   up: { x: 0, y: -1, label: '上' },
   down: { x: 0, y: 1, label: '下' },
   left: { x: -1, y: 0, label: '左' },
   right: { x: 1, y: 0, label: '右' },
 };
 
-export const OPPOSITES = {
+export const OPPOSITES: Record<Direction, Direction> = {
   up: 'down',
   down: 'up',
   left: 'right',
   right: 'left',
 };
 
-export const DIFFICULTIES = {
+export interface DifficultyConfig {
+  id: DifficultyId;
+  label: string;
+  en: string;
+  description: string;
+  baseMs: number;
+  acceleration: number;
+  minMs: number;
+}
+
+export const DIFFICULTIES: Record<DifficultyId, DifficultyConfig> = {
   chill: {
     id: 'chill',
     label: '悠闲',
@@ -46,4 +65,8 @@ export const DIFFICULTIES = {
   },
 };
 
-export const DIFFICULTY_ORDER = ['chill', 'normal', 'turbo'];
+export const DIFFICULTY_ORDER = [
+  'chill',
+  'normal',
+  'turbo',
+] as const satisfies readonly DifficultyId[];

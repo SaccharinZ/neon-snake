@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { GameBoard } from './components/GameBoard';
 import {
   DIFFICULTIES,
@@ -7,13 +8,22 @@ import {
   GRID_SIZE,
   LEVEL_EVERY,
 } from './game/constants';
+import type { DifficultyId, Direction } from './game/constants';
+import type { GameStatus } from './game/engine';
 import {
   loadSoundPreference,
   saveSoundPreference,
 } from './game/storage';
 import { useSnakeGame } from './game/useSnakeGame';
 
-const STATUS_META = {
+type StatusTone = 'idle' | 'live' | 'warning' | 'danger' | 'win';
+
+interface StatusMeta {
+  label: string;
+  tone: StatusTone;
+}
+
+const STATUS_META: Record<GameStatus, StatusMeta> = {
   ready: { label: '待命', tone: 'idle' },
   playing: { label: '运行中', tone: 'live' },
   paused: { label: '已暂停', tone: 'warning' },
@@ -21,7 +31,7 @@ const STATUS_META = {
   won: { label: '已通关', tone: 'win' },
 };
 
-const KEY_TO_DIRECTION = {
+const KEY_TO_DIRECTION: Partial<Record<string, Direction>> = {
   ArrowUp: 'up',
   KeyW: 'up',
   ArrowDown: 'down',
@@ -32,8 +42,8 @@ const KEY_TO_DIRECTION = {
   KeyD: 'right',
 };
 
-const padScore = (value) => String(value).padStart(4, '0');
-const padLength = (value) => String(value).padStart(2, '0');
+const padScore = (value: number): string => String(value).padStart(4, '0');
+const padLength = (value: number): string => String(value).padStart(2, '0');
 
 function SnakeMark() {
   return (
@@ -49,7 +59,7 @@ function SnakeMark() {
   );
 }
 
-function SpeakerIcon({ muted }) {
+function SpeakerIcon({ muted }: { muted: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -85,7 +95,7 @@ function SpeakerIcon({ muted }) {
   );
 }
 
-function PauseIcon({ paused }) {
+function PauseIcon({ paused }: { paused: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       {paused ? (
@@ -100,13 +110,14 @@ function PauseIcon({ paused }) {
   );
 }
 
-function ArrowIcon({ direction }) {
-  const rotation = {
+function ArrowIcon({ direction }: { direction: Direction }) {
+  const rotations: Record<Direction, number> = {
     up: 0,
     right: 90,
     down: 180,
     left: 270,
-  }[direction];
+  };
+  const rotation = rotations[direction];
 
   return (
     <svg
@@ -140,7 +151,23 @@ function RestartIcon() {
   );
 }
 
-function StatCard({ variant, label, english, value, footer }) {
+type StatVariant = 'score' | 'best' | 'length';
+
+interface StatCardProps {
+  variant: StatVariant;
+  label: string;
+  english: string;
+  value: string;
+  footer: ReactNode;
+}
+
+function StatCard({
+  variant,
+  label,
+  english,
+  value,
+  footer,
+}: StatCardProps) {
   return (
     <article className={`score-card score-card--${variant}`}>
       <div className="score-card__head">
@@ -168,7 +195,7 @@ export default function App() {
     changeDifficulty,
   } = useSnakeGame({ soundEnabled });
 
-  const status = STATUS_META[game.status] ?? STATUS_META.ready;
+  const status = STATUS_META[game.status];
   const difficultyLocked =
     game.status === 'playing' || game.status === 'paused';
   const canPause = game.status === 'playing' || game.status === 'paused';
@@ -180,7 +207,7 @@ export default function App() {
   }, [soundEnabled]);
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
       if (
         event.defaultPrevented ||
         event.metaKey ||
@@ -257,27 +284,39 @@ export default function App() {
     };
   }, [game.status, pauseGame, startGame, togglePause, turn]);
 
-  const handleDifficultyClick = (difficultyId, event) => {
+  const handleDifficultyClick = (
+    difficultyId: DifficultyId,
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ): void => {
     event.currentTarget.blur();
     changeDifficulty(difficultyId);
   };
 
-  const handleDirectionClick = (direction, event) => {
+  const handleDirectionClick = (
+    direction: Direction,
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ): void => {
     event.currentTarget.blur();
     turn(direction);
   };
 
-  const handleTogglePause = (event) => {
+  const handleTogglePause = (
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ): void => {
     event.currentTarget.blur();
     togglePause();
   };
 
-  const handleRestart = (event) => {
+  const handleRestart = (
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ): void => {
     event.currentTarget.blur();
     startGame();
   };
 
-  const handleSoundToggle = (event) => {
+  const handleSoundToggle = (
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ): void => {
     event.currentTarget.blur();
     setSoundEnabled((enabled) => !enabled);
   };

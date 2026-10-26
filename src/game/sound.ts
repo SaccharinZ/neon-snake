@@ -1,6 +1,21 @@
-let audioContext = null;
+interface ToneOptions {
+  frequency: number;
+  endFrequency?: number;
+  duration?: number;
+  type?: OscillatorType;
+  volume?: number;
+  delay?: number;
+}
 
-function getAudioContext() {
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
+let audioContext: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
 
   const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
@@ -15,7 +30,7 @@ function getAudioContext() {
   }
 
   if (audioContext.state === 'suspended') {
-    audioContext.resume().catch(() => {});
+    audioContext.resume().catch(() => undefined);
   }
 
   return audioContext;
@@ -28,7 +43,7 @@ function tone({
   type = 'sine',
   volume = 0.04,
   delay = 0,
-}) {
+}: ToneOptions): void {
   const context = getAudioContext();
   if (!context) return;
 
@@ -53,11 +68,11 @@ function tone({
   oscillator.stop(startAt + duration + 0.03);
 }
 
-export function unlockAudio() {
+export function unlockAudio(): void {
   getAudioContext();
 }
 
-export function playStartSound() {
+export function playStartSound(): void {
   tone({ frequency: 280, endFrequency: 420, duration: 0.11, type: 'triangle' });
   tone({
     frequency: 420,
@@ -76,7 +91,7 @@ export function playStartSound() {
   });
 }
 
-export function playEatSound() {
+export function playEatSound(): void {
   tone({
     frequency: 720,
     endFrequency: 1000,
@@ -94,7 +109,7 @@ export function playEatSound() {
   });
 }
 
-export function playLevelUpSound() {
+export function playLevelUpSound(): void {
   tone({
     frequency: 520,
     endFrequency: 660,
@@ -113,7 +128,7 @@ export function playLevelUpSound() {
   });
 }
 
-export function playCrashSound() {
+export function playCrashSound(): void {
   tone({
     frequency: 240,
     endFrequency: 70,
@@ -131,7 +146,7 @@ export function playCrashSound() {
   });
 }
 
-export function playWinSound() {
+export function playWinSound(): void {
   [440, 554, 659, 880].forEach((frequency, index) => {
     tone({
       frequency,

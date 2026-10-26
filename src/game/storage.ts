@@ -1,7 +1,7 @@
 const BEST_SCORE_KEY = 'neon-snake.best-score';
 const SOUND_PREFERENCE_KEY = 'neon-snake.sound';
 
-function getStorage() {
+function getStorage(): Storage | null {
   try {
     return window.localStorage;
   } catch {
@@ -9,7 +9,7 @@ function getStorage() {
   }
 }
 
-export function loadBestScore() {
+export function loadBestScore(): number {
   const storage = getStorage();
   if (!storage) return 0;
 
@@ -17,7 +17,7 @@ export function loadBestScore() {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
-export function saveBestScore(score) {
+export function saveBestScore(score: number): void {
   const storage = getStorage();
   if (!storage) return;
 
@@ -28,13 +28,13 @@ export function saveBestScore(score) {
   }
 }
 
-export function loadSoundPreference() {
+export function loadSoundPreference(): boolean {
   const storage = getStorage();
   if (!storage) return true;
   return storage.getItem(SOUND_PREFERENCE_KEY) !== 'off';
 }
 
-export function saveSoundPreference(enabled) {
+export function saveSoundPreference(enabled: boolean): void {
   const storage = getStorage();
   if (!storage) return;
 
